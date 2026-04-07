@@ -45,12 +45,12 @@ enum Commands {
 
 fn get_client() -> Result<api::Client> {
     let cfg = config::load_config()?;
-    let api_key = cfg
-        .api_key
-        .ok_or_else(|| anyhow::anyhow!("API key not configured. Run 'checkly config --api-key <key>' first"))?;
-    let account_id = cfg
-        .account_id
-        .ok_or_else(|| anyhow::anyhow!("Account ID not configured. Run 'checkly config --account-id <id>' first"))?;
+    let api_key = cfg.api_key.ok_or_else(|| {
+        anyhow::anyhow!("API key not configured. Run 'checkly config --api-key <key>' first")
+    })?;
+    let account_id = cfg.account_id.ok_or_else(|| {
+        anyhow::anyhow!("Account ID not configured. Run 'checkly config --account-id <id>' first")
+    })?;
     api::Client::new(&api_key, &account_id)
 }
 
@@ -63,7 +63,10 @@ fn parse_duration(s: &str) -> Result<Duration> {
         "h" => Ok(Duration::hours(num)),
         "d" => Ok(Duration::days(num)),
         "m" => Ok(Duration::minutes(num)),
-        _ => anyhow::bail!("Invalid duration unit '{}'. Use h (hours), d (days), or m (minutes)", unit),
+        _ => anyhow::bail!(
+            "Invalid duration unit '{}'. Use h (hours), d (days), or m (minutes)",
+            unit
+        ),
     }
 }
 
@@ -72,7 +75,10 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Config { api_key, account_id } => {
+        Commands::Config {
+            api_key,
+            account_id,
+        } => {
             let mut cfg = config::load_config()?;
             if let Some(key) = api_key {
                 cfg.api_key = Some(key);
@@ -110,7 +116,10 @@ async fn main() -> Result<()> {
             let statuses = client.get_statuses().await?;
 
             let filtered: Vec<_> = if failures_only {
-                statuses.into_iter().filter(|s| s.has_failures || s.has_errors).collect()
+                statuses
+                    .into_iter()
+                    .filter(|s| s.has_failures || s.has_errors)
+                    .collect()
             } else {
                 statuses
             };
@@ -130,12 +139,7 @@ async fn main() -> Result<()> {
                     } else {
                         "OK"
                     };
-                    println!(
-                        "{:<40} {:<8} {}",
-                        status.check_id,
-                        state,
-                        status.name
-                    );
+                    println!("{:<40} {:<8} {}", status.check_id, state, status.name);
                 }
             }
         }
@@ -162,7 +166,9 @@ async fn main() -> Result<()> {
                 is_first = false;
 
                 let chunk_end = (chunk_start + six_hours).min(end);
-                let results = client.get_results(&check_id, Some(chunk_start), Some(chunk_end)).await?;
+                let results = client
+                    .get_results(&check_id, Some(chunk_start), Some(chunk_end))
+                    .await?;
                 all_results.extend(results);
                 chunk_start = chunk_end;
             }
@@ -177,16 +183,15 @@ async fn main() -> Result<()> {
             } else if failures.is_empty() {
                 println!("No failures in the last {}", since);
             } else {
-                println!("{:<24} {:<10} {:<8} {:<6} {}", "TIME", "LOCATION", "STATUS", "MS", "RUN ID");
+                println!(
+                    "{:<24} {:<10} {:<8} {:<6} {}",
+                    "TIME", "LOCATION", "STATUS", "MS", "RUN ID"
+                );
                 println!("{}", "-".repeat(70));
                 for result in &failures {
                     let time = result.started_at.as_deref().unwrap_or("-");
                     let location = result.run_location.as_deref().unwrap_or("-");
-                    let status = if result.has_errors {
-                        "ERROR"
-                    } else {
-                        "FAILED"
-                    };
+                    let status = if result.has_errors { "ERROR" } else { "FAILED" };
                     let response_time = result
                         .response_time
                         .map(|t| t.to_string())
