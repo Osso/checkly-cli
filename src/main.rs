@@ -209,7 +209,10 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Config { api_key, account_id } => configure(api_key, account_id)?,
+        Commands::Config {
+            api_key,
+            account_id,
+        } => configure(api_key, account_id)?,
         Commands::Checks => list_checks(cli.json).await?,
         Commands::Status { failures_only } => show_status(failures_only, cli.json).await?,
         Commands::Failures { check_id, since } => show_failures(check_id, since, cli.json).await?,
